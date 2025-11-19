@@ -1,2 +1,46 @@
-index.htmlの内容を表示しました。次に、このコードをコピーしやすいように整形して提示し、その後game.jsの作成手順に進みます。
-ステップバイステップで進めて、ユーザーが確実にデプロイできるようにします
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>デウス・コード 八百万の神託</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- タイトル画面 -->
+        <div id="title-screen" class="screen active">
+            <div class="title-content">
+                <h1 class="game-title">デウス・コード<br>八百万の神託</h1>
+                <p class="game-subtitle">DEUS CODE: Oracle of Yaoyorozu</p>
+                <button id="start-button" class="menu-button">START</button>
+            </div>
+        </div>
+
+        <!-- ダイアログ画面 -->
+        <div id="dialogue-screen" class="screen">
+            <div class="dialogue-box">
+                <div id="speaker-name" class="speaker-name"></div>
+                <div id="dialogue-text" class="dialogue-text"></div>
+                <div class="dialogue-controls">
+                    <button id="next-button" class="control-button">▼</button>
+                </div>
+            </div>
+            <div id="background" class="background"></div>
+            <div id="character-display" class="character-display"></div>
+        </div>
+
+        <!-- マップ画面 -->
+        <div id="map-screen" class="screen">
+            <div class="map-container">
+                <div id="map-area" class="map-area">
+                    <p class="map-placeholder">シンジュク - 闇市エリア</p>
+                    <p class="map-info">マップ画面が表示されました</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
