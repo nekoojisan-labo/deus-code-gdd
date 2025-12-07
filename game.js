@@ -4,59 +4,20 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// 動的サイズ計算
-function calculateGameSize() {
-    const padding = 40;
-    const maxWidth = window.innerWidth - padding;
-    const maxHeight = window.innerHeight - padding;
+// ゲーム定数（大画面対応）
+const TILE_SIZE = 50;
+const GRID_WIDTH = 24;
+const GRID_HEIGHT = 12;
+const STATUS_BAR_HEIGHT = 150;
+const PLAYABLE_HEIGHT = canvas.height - STATUS_BAR_HEIGHT;
 
-    // 16:10のアスペクト比を維持
-    const aspectRatio = 16 / 10;
-
-    let width = maxWidth;
-    let height = width / aspectRatio;
-
-    if (height > maxHeight) {
-        height = maxHeight;
-        width = height * aspectRatio;
-    }
-
-    // 最小サイズ
-    width = Math.max(800, Math.floor(width));
-    height = Math.max(500, Math.floor(height));
-
-    return { width, height };
-}
-
-// キャンバスサイズを設定
-function resizeCanvas() {
-    const size = calculateGameSize();
-    canvas.width = size.width;
-    canvas.height = size.height;
-
-    // 動的な定数を再計算
-    updateGameConstants();
-}
-
-// ゲーム定数（動的に更新）
-let TILE_SIZE, GRID_WIDTH, GRID_HEIGHT, STATUS_BAR_HEIGHT, PLAYABLE_HEIGHT;
-
-function updateGameConstants() {
-    // タイルサイズは画面サイズに応じて調整
-    TILE_SIZE = Math.floor(canvas.width / 20);
-    GRID_WIDTH = Math.floor(canvas.width / TILE_SIZE);
-    STATUS_BAR_HEIGHT = Math.floor(canvas.height * 0.18);
-    PLAYABLE_HEIGHT = canvas.height - STATUS_BAR_HEIGHT;
-    GRID_HEIGHT = Math.floor(PLAYABLE_HEIGHT / TILE_SIZE);
-}
-
-// アニメーション用タイマー
+// アニメーション用
 let animationTime = 0;
 
 // ゲーム状態
 const gameState = {
     player: {
-        x: 9,
+        x: 12,
         y: 6,
         hp: 100,
         maxHp: 100,
@@ -75,7 +36,7 @@ const gameState = {
     moveDelay: 150
 };
 
-// マップデータ
+// マップデータ（大画面用に調整）
 const maps = {
     shinjuku_central: {
         name: '新宿 - 中央区画',
@@ -83,35 +44,32 @@ const maps = {
         walkCount: 176,
         encounterRate: 45,
         bgColor: '#1a1a2e',
-        accentColor: '#00ffff',
         npcs: [
-            { x: 3, y: 3, name: '武器商人リョウ', color: '#90EE90', dialog: '良い武器が入ったぜ！見ていくかい？' },
-            { x: 6, y: 3, name: '防具商人サクラ', color: '#FFB6C1', dialog: '防具なら私に任せて！' },
-            { x: 9, y: 3, name: 'アイテム商人ユウキ', color: '#87CEEB', dialog: 'アイテムの補充はいかが？' },
-            { x: 12, y: 3, name: '魔法商人ミコト', color: '#DDA0DD', dialog: '魔法の書を揃えているわ' },
-            { x: 3, y: 6, name: '宿屋の主人', color: '#FFA07A', dialog: '疲れただろう？ゆっくり休んでいきな' },
-            { x: 6, y: 6, name: '新宿区長', color: '#F0E68C', dialog: 'ようこそ新宿中央区画へ' },
-            { x: 12, y: 6, name: 'ギルドマスター', color: '#98FB98', dialog: 'クエストを受けていくかい？' }
+            { x: 4, y: 3, name: '武器商人リョウ', color: '#90EE90', dialog: '良い武器が入ったぜ！見ていくかい？' },
+            { x: 8, y: 3, name: '防具商人サクラ', color: '#FFB6C1', dialog: '防具なら私に任せて！' },
+            { x: 12, y: 3, name: 'アイテム商人ユウキ', color: '#87CEEB', dialog: 'アイテムの補充はいかが？' },
+            { x: 16, y: 3, name: '魔法商人ミコト', color: '#DDA0DD', dialog: '魔法の書を揃えているわ' },
+            { x: 6, y: 7, name: '宿屋の主人', color: '#FFA07A', dialog: '疲れただろう？ゆっくり休んでいきな' },
+            { x: 10, y: 7, name: '新宿区長', color: '#F0E68C', dialog: 'ようこそ新宿中央区画へ' },
+            { x: 18, y: 7, name: 'ギルドマスター', color: '#98FB98', dialog: 'クエストを受けていくかい？' }
         ],
         obstacles: [
-            { x: 4, y: 2, width: 3, height: 2, name: '街の住居', color: '#3a3a5a' }
+            { x: 5, y: 5, width: 3, height: 2, name: '街の住居' }
         ],
         portals: [
             {
-                x: 0, y: 4, width: 1, height: 3,
+                x: 0, y: 4, width: 1, height: 4,
                 direction: 'left',
                 target: 'residential_area',
                 targetDir: 'right',
-                label: '住宅街へ',
-                icon: '🏘️'
+                label: '← 住宅街へ'
             },
             {
-                x: 18, y: 4, width: 1, height: 3,
+                x: 23, y: 4, width: 1, height: 4,
                 direction: 'right',
                 target: 'shibuya_shopping',
                 targetDir: 'left',
-                label: '渋谷へ',
-                icon: '🏬'
+                label: '渋谷へ →'
             }
         ]
     },
@@ -122,23 +80,21 @@ const maps = {
         walkCount: 120,
         encounterRate: 20,
         bgColor: '#1e2a1e',
-        accentColor: '#88ff88',
         npcs: [
-            { x: 6, y: 4, name: '老人', color: '#D3D3D3', dialog: '最近は物騒でのう...' },
-            { x: 10, y: 5, name: '子供', color: '#FFD700', dialog: 'ぼく、依人になりたいな！' }
+            { x: 8, y: 5, name: '老人', color: '#D3D3D3', dialog: '最近は物騒でのう...' },
+            { x: 14, y: 6, name: '子供', color: '#FFD700', dialog: 'ぼく、依人になりたいな！' }
         ],
         obstacles: [
-            { x: 3, y: 3, width: 2, height: 2, name: '民家', color: '#4a4a3a' },
-            { x: 13, y: 3, width: 2, height: 2, name: '民家', color: '#4a4a3a' }
+            { x: 4, y: 3, width: 3, height: 2, name: '民家' },
+            { x: 17, y: 3, width: 3, height: 2, name: '民家' }
         ],
         portals: [
             {
-                x: 18, y: 4, width: 1, height: 3,
+                x: 23, y: 4, width: 1, height: 4,
                 direction: 'right',
                 target: 'shinjuku_central',
                 targetDir: 'left',
-                label: '中央区画へ',
-                icon: '🏛️'
+                label: '中央区画へ →'
             }
         ]
     },
@@ -149,36 +105,32 @@ const maps = {
         walkCount: 270,
         encounterRate: 0,
         bgColor: '#2a1a2e',
-        accentColor: '#ff00ff',
         npcs: [
-            { x: 9, y: 7, name: '感情を失った市民', color: '#B0C4DE', dialog: '...買い物...効率的...アーク様...' },
-            { x: 10, y: 3, name: 'アカリ', color: '#FFD700', dialog: 'この街の人たち、何かおかしいわ...' }
+            { x: 12, y: 8, name: '感情を失った市民', color: '#B0C4DE', dialog: '...買い物...効率的...アーク様...' },
+            { x: 14, y: 4, name: 'アカリ', color: '#FFD700', dialog: 'この街の人たち、何かおかしいわ...' }
         ],
         obstacles: [],
         portals: [
             {
-                x: 0, y: 4, width: 1, height: 3,
+                x: 0, y: 4, width: 1, height: 4,
                 direction: 'left',
                 target: 'shinjuku_central',
                 targetDir: 'right',
-                label: '新宿へ',
-                icon: '🏛️'
+                label: '← 新宿へ'
             },
             {
-                x: 8, y: 9, width: 3, height: 1,
+                x: 10, y: 11, width: 4, height: 1,
                 direction: 'bottom',
                 target: 'shibuya_street',
                 targetDir: 'top',
-                label: '表通りへ',
-                icon: '🛣️'
+                label: '↓ 表通りへ'
             },
             {
-                x: 18, y: 4, width: 1, height: 3,
+                x: 23, y: 4, width: 1, height: 4,
                 direction: 'right',
                 target: 'city_hall',
                 targetDir: 'left',
-                label: '都庁へ',
-                icon: '🏢'
+                label: '都庁へ →'
             }
         ]
     },
@@ -189,31 +141,28 @@ const maps = {
         walkCount: 200,
         encounterRate: 15,
         bgColor: '#2a2a1e',
-        accentColor: '#ffff00',
         npcs: [
-            { x: 5, y: 5, name: '商人', color: '#FFA500', dialog: 'いらっしゃい！何か探してる？' },
-            { x: 13, y: 5, name: '巡回ドローン', color: '#FF6347', dialog: '...監視中...異常なし...' }
+            { x: 7, y: 6, name: '商人', color: '#FFA500', dialog: 'いらっしゃい！何か探してる？' },
+            { x: 17, y: 6, name: '巡回ドローン', color: '#FF6347', dialog: '...監視中...異常なし...' }
         ],
         obstacles: [
-            { x: 3, y: 3, width: 2, height: 2, name: '店舗', color: '#5a4a3a' },
-            { x: 14, y: 3, width: 2, height: 2, name: '店舗', color: '#5a4a3a' }
+            { x: 4, y: 4, width: 3, height: 2, name: '店舗' },
+            { x: 17, y: 4, width: 3, height: 2, name: '店舗' }
         ],
         portals: [
             {
-                x: 8, y: 0, width: 3, height: 1,
+                x: 10, y: 0, width: 4, height: 1,
                 direction: 'top',
                 target: 'shibuya_shopping',
                 targetDir: 'bottom',
-                label: 'モールへ',
-                icon: '🏬'
+                label: '↑ モールへ'
             },
             {
-                x: 8, y: 9, width: 3, height: 1,
+                x: 10, y: 11, width: 4, height: 1,
                 direction: 'bottom',
                 target: 'underground_market',
                 targetDir: 'top',
-                label: '闇市へ',
-                icon: '🌑'
+                label: '↓ 闇市へ'
             }
         ]
     },
@@ -224,22 +173,20 @@ const maps = {
         walkCount: 150,
         encounterRate: 30,
         bgColor: '#1a2a3a',
-        accentColor: '#00ccff',
         npcs: [
-            { x: 9, y: 6, name: 'AI管理官', color: '#00CED1', dialog: 'アークの意志に従え...' },
-            { x: 6, y: 4, name: 'ヤミ', color: '#9370DB', dialog: 'ここがAIの中枢か...興味深いな' }
+            { x: 12, y: 7, name: 'AI管理官', color: '#00CED1', dialog: 'アークの意志に従え...' },
+            { x: 8, y: 5, name: 'ヤミ', color: '#9370DB', dialog: 'ここがAIの中枢か...興味深いな' }
         ],
         obstacles: [
-            { x: 8, y: 3, width: 3, height: 2, name: '制御装置', color: '#2a4a5a' }
+            { x: 10, y: 3, width: 4, height: 2, name: '制御装置' }
         ],
         portals: [
             {
-                x: 0, y: 4, width: 1, height: 3,
+                x: 0, y: 4, width: 1, height: 4,
                 direction: 'left',
                 target: 'shibuya_shopping',
                 targetDir: 'right',
-                label: 'モールへ',
-                icon: '🏬'
+                label: '← モールへ'
             }
         ]
     },
@@ -250,24 +197,22 @@ const maps = {
         walkCount: 300,
         encounterRate: 0,
         bgColor: '#0a0a1a',
-        accentColor: '#ff4400',
         npcs: [
-            { x: 5, y: 5, name: 'レジスタンス', color: '#FF4500', dialog: 'アークを倒す...それが俺たちの使命だ' },
-            { x: 13, y: 5, name: '情報屋', color: '#DAA520', dialog: '何か知りたいことは？' },
-            { x: 9, y: 7, name: 'リク', color: '#32CD32', dialog: '外の世界...本当の自然を見てみたい' }
+            { x: 7, y: 6, name: 'レジスタンス', color: '#FF4500', dialog: 'アークを倒す...それが俺たちの使命だ' },
+            { x: 17, y: 6, name: '情報屋', color: '#DAA520', dialog: '何か知りたいことは？' },
+            { x: 12, y: 8, name: 'リク', color: '#32CD32', dialog: '外の世界...本当の自然を見てみたい' }
         ],
         obstacles: [
-            { x: 3, y: 3, width: 2, height: 2, name: '武器庫', color: '#4a2a2a' },
-            { x: 14, y: 3, width: 2, height: 2, name: '物資', color: '#3a3a2a' }
+            { x: 4, y: 3, width: 3, height: 2, name: '武器庫' },
+            { x: 17, y: 3, width: 3, height: 2, name: '物資' }
         ],
         portals: [
             {
-                x: 8, y: 0, width: 3, height: 1,
+                x: 10, y: 0, width: 4, height: 1,
                 direction: 'top',
                 target: 'shibuya_street',
                 targetDir: 'bottom',
-                label: '表通りへ',
-                icon: '🛣️'
+                label: '↑ 表通りへ'
             }
         ]
     }
@@ -278,23 +223,23 @@ function setPlayerPositionFromPortal(targetDir) {
     switch(targetDir) {
         case 'left':
             gameState.player.x = 2;
-            gameState.player.y = Math.floor(GRID_HEIGHT / 2);
+            gameState.player.y = 6;
             break;
         case 'right':
             gameState.player.x = GRID_WIDTH - 3;
-            gameState.player.y = Math.floor(GRID_HEIGHT / 2);
+            gameState.player.y = 6;
             break;
         case 'top':
-            gameState.player.x = Math.floor(GRID_WIDTH / 2);
+            gameState.player.x = 12;
             gameState.player.y = 2;
             break;
         case 'bottom':
-            gameState.player.x = Math.floor(GRID_WIDTH / 2);
+            gameState.player.x = 12;
             gameState.player.y = GRID_HEIGHT - 3;
             break;
         default:
-            gameState.player.x = Math.floor(GRID_WIDTH / 2);
-            gameState.player.y = Math.floor(GRID_HEIGHT / 2);
+            gameState.player.x = 12;
+            gameState.player.y = 6;
     }
 }
 
@@ -302,16 +247,19 @@ function setPlayerPositionFromPortal(targetDir) {
 function canMove(x, y) {
     const map = maps[gameState.currentMap];
 
+    // マップ境界チェック
     if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
         return false;
     }
 
+    // NPCとの衝突チェック
     for (let npc of map.npcs) {
         if (npc.x === x && npc.y === y) {
             return false;
         }
     }
 
+    // 障害物との衝突チェック
     for (let obs of map.obstacles) {
         if (x >= obs.x && x < obs.x + obs.width &&
             y >= obs.y && y < obs.y + obs.height) {
@@ -331,6 +279,7 @@ function checkPortal() {
     for (let portal of map.portals) {
         if (px >= portal.x && px < portal.x + portal.width &&
             py >= portal.y && py < portal.y + portal.height) {
+            // マップ移動
             gameState.currentMap = portal.target;
             setPlayerPositionFromPortal(portal.targetDir);
             return true;
@@ -345,6 +294,7 @@ function checkNpcInteraction() {
     const px = gameState.player.x;
     const py = gameState.player.y;
 
+    // 隣接するNPCをチェック
     for (let npc of map.npcs) {
         const dx = Math.abs(npc.x - px);
         const dy = Math.abs(npc.y - py);
@@ -374,6 +324,8 @@ function movePlayer(dx, dy) {
         gameState.player.x = newX;
         gameState.player.y = newY;
         gameState.lastMoveTime = now;
+
+        // ポータルチェック
         checkPortal();
     }
 }
@@ -381,10 +333,12 @@ function movePlayer(dx, dy) {
 // アクション（会話）
 function doAction() {
     if (gameState.showDialog) {
+        // ダイアログを閉じる
         gameState.showDialog = false;
         gameState.dialogText = '';
         gameState.dialogNpc = null;
     } else {
+        // NPCとの会話を開始
         const npc = checkNpcInteraction();
         if (npc) {
             gameState.showDialog = true;
@@ -399,486 +353,362 @@ function saveGame() {
     console.log('ゲームをセーブしました');
 }
 
-// 床タイルを描画
-function drawFloorTiles() {
+// 描画関数
+function drawGame() {
     const map = maps[gameState.currentMap];
 
+    // 背景
+    ctx.fillStyle = map.bgColor;
+    ctx.fillRect(0, 0, canvas.width, PLAYABLE_HEIGHT);
+
+    // グリッド（床タイル風）
     for (let x = 0; x < GRID_WIDTH; x++) {
         for (let y = 0; y < GRID_HEIGHT; y++) {
-            const px = x * TILE_SIZE;
-            const py = y * TILE_SIZE;
-
-            // 基本の床色
-            const isAlternate = (x + y) % 2 === 0;
-            const baseColor = map.bgColor;
-
-            // わずかに色を変えてタイル感を出す
-            ctx.fillStyle = isAlternate ? baseColor : adjustBrightness(baseColor, 10);
-            ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-
-            // タイルの縁
-            ctx.strokeStyle = adjustBrightness(baseColor, 20);
-            ctx.lineWidth = 1;
-            ctx.strokeRect(px + 0.5, py + 0.5, TILE_SIZE - 1, TILE_SIZE - 1);
+            const isAlt = (x + y) % 2 === 0;
+            ctx.fillStyle = isAlt ? map.bgColor : adjustColor(map.bgColor, 15);
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
         }
     }
-}
 
-// 色の明るさを調整
-function adjustBrightness(hexColor, amount) {
-    const hex = hexColor.replace('#', '');
-    const r = Math.min(255, Math.max(0, parseInt(hex.substring(0, 2), 16) + amount));
-    const g = Math.min(255, Math.max(0, parseInt(hex.substring(2, 4), 16) + amount));
-    const b = Math.min(255, Math.max(0, parseInt(hex.substring(4, 6), 16) + amount));
-    return `rgb(${r}, ${g}, ${b})`;
-}
+    // グリッド線
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= GRID_WIDTH; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * TILE_SIZE, 0);
+        ctx.lineTo(x * TILE_SIZE, PLAYABLE_HEIGHT);
+        ctx.stroke();
+    }
+    for (let y = 0; y <= GRID_HEIGHT; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * TILE_SIZE);
+        ctx.lineTo(canvas.width, y * TILE_SIZE);
+        ctx.stroke();
+    }
 
-// ポータルを描画（改善版）
-function drawPortals() {
-    const map = maps[gameState.currentMap];
-    const glowIntensity = Math.sin(animationTime * 0.05) * 0.3 + 0.7;
+    // 障害物
+    for (let obs of map.obstacles) {
+        ctx.fillStyle = '#3a3a4a';
+        ctx.fillRect(
+            obs.x * TILE_SIZE,
+            obs.y * TILE_SIZE,
+            obs.width * TILE_SIZE,
+            obs.height * TILE_SIZE
+        );
+        // 建物の影
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(
+            obs.x * TILE_SIZE + 4,
+            obs.y * TILE_SIZE + obs.height * TILE_SIZE,
+            obs.width * TILE_SIZE,
+            4
+        );
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.name, (obs.x + obs.width/2) * TILE_SIZE, (obs.y + obs.height/2) * TILE_SIZE + 5);
+    }
 
+    // ポータル（目立つように）
+    const glowIntensity = Math.sin(animationTime * 0.08) * 0.3 + 0.7;
     for (let portal of map.portals) {
         const px = portal.x * TILE_SIZE;
         const py = portal.y * TILE_SIZE;
         const pw = portal.width * TILE_SIZE;
         const ph = portal.height * TILE_SIZE;
-        const centerX = px + pw / 2;
-        const centerY = py + ph / 2;
 
-        // グロー効果（外側）
-        const gradient = ctx.createRadialGradient(
-            centerX, centerY, 0,
-            centerX, centerY, Math.max(pw, ph)
-        );
-        gradient.addColorStop(0, `rgba(0, 255, 255, ${0.4 * glowIntensity})`);
-        gradient.addColorStop(0.5, `rgba(0, 200, 255, ${0.2 * glowIntensity})`);
-        gradient.addColorStop(1, 'rgba(0, 100, 255, 0)');
+        // グロー効果
+        ctx.shadowColor = '#0ff';
+        ctx.shadowBlur = 20 * glowIntensity;
 
-        ctx.fillStyle = gradient;
-        ctx.fillRect(px - 20, py - 20, pw + 40, ph + 40);
-
-        // ポータル本体（パルスするボーダー）
-        ctx.fillStyle = `rgba(0, 50, 100, ${0.7 + glowIntensity * 0.3})`;
+        // ポータルエリア
+        ctx.fillStyle = `rgba(0, 255, 255, ${0.3 * glowIntensity})`;
         ctx.fillRect(px, py, pw, ph);
 
-        // アニメーションするボーダー
+        // ボーダー
         ctx.strokeStyle = `rgba(0, 255, 255, ${glowIntensity})`;
         ctx.lineWidth = 3;
         ctx.strokeRect(px + 2, py + 2, pw - 4, ph - 4);
 
-        // 内側のボーダー
-        ctx.strokeStyle = `rgba(255, 255, 255, ${glowIntensity * 0.5})`;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px + 5, py + 5, pw - 10, ph - 10);
-
-        // アイコン
-        ctx.font = `${Math.min(TILE_SIZE * 0.8, 32)}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(portal.icon || '🚪', centerX, centerY - 10);
-
-        // ラベル
-        ctx.fillStyle = '#fff';
-        ctx.font = `bold ${Math.max(12, TILE_SIZE * 0.3)}px sans-serif`;
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 4;
-        ctx.fillText(portal.label, centerX, centerY + 15);
         ctx.shadowBlur = 0;
 
-        // 方向を示す矢印（アニメーション）
-        const arrowOffset = Math.sin(animationTime * 0.1) * 5;
-        ctx.fillStyle = `rgba(0, 255, 255, ${glowIntensity})`;
-        ctx.font = `${Math.min(TILE_SIZE * 0.5, 24)}px sans-serif`;
-
-        switch(portal.direction) {
-            case 'left':
-                ctx.fillText('◀', px - 15 - arrowOffset, centerY);
-                break;
-            case 'right':
-                ctx.fillText('▶', px + pw + 15 + arrowOffset, centerY);
-                break;
-            case 'top':
-                ctx.fillText('▲', centerX, py - 15 - arrowOffset);
-                break;
-            case 'bottom':
-                ctx.fillText('▼', centerX, py + ph + 15 + arrowOffset);
-                break;
-        }
-    }
-}
-
-// 障害物を描画
-function drawObstacles() {
-    const map = maps[gameState.currentMap];
-
-    for (let obs of map.obstacles) {
-        const px = obs.x * TILE_SIZE;
-        const py = obs.y * TILE_SIZE;
-        const pw = obs.width * TILE_SIZE;
-        const ph = obs.height * TILE_SIZE;
-
-        // 建物本体
-        ctx.fillStyle = obs.color || '#3a3a4a';
-        ctx.fillRect(px, py, pw, ph);
-
-        // 3D効果（上部）
-        ctx.fillStyle = adjustBrightness(obs.color || '#3a3a4a', 30);
-        ctx.fillRect(px, py, pw, 5);
-
-        // 影
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(px + 5, py + ph, pw, 5);
-
-        // ボーダー
-        ctx.strokeStyle = adjustBrightness(obs.color || '#3a3a4a', 40);
-        ctx.lineWidth = 2;
-        ctx.strokeRect(px, py, pw, ph);
-
         // ラベル
         ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(10, TILE_SIZE * 0.25)}px sans-serif`;
+        ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(obs.name, px + pw / 2, py + ph / 2);
+
+        // テキストの背景
+        const textX = px + pw/2;
+        const textY = py + ph/2;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        const textWidth = ctx.measureText(portal.label).width + 10;
+        ctx.fillRect(textX - textWidth/2, textY - 10, textWidth, 20);
+
+        ctx.fillStyle = '#0ff';
+        ctx.fillText(portal.label, textX, textY);
     }
-}
 
-// NPCを描画
-function drawNPCs() {
-    const map = maps[gameState.currentMap];
-    const bobOffset = Math.sin(animationTime * 0.08) * 2;
-
+    // NPC
     for (let npc of map.npcs) {
-        const px = npc.x * TILE_SIZE + TILE_SIZE / 2;
-        const py = npc.y * TILE_SIZE + TILE_SIZE / 2 + bobOffset;
-        const radius = TILE_SIZE / 3;
+        const bobOffset = Math.sin(animationTime * 0.1 + npc.x) * 2;
 
         // 影
         ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
         ctx.beginPath();
-        ctx.ellipse(px, py + radius + 5, radius * 0.8, radius * 0.3, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+            npc.x * TILE_SIZE + TILE_SIZE/2,
+            npc.y * TILE_SIZE + TILE_SIZE - 5,
+            TILE_SIZE/3,
+            TILE_SIZE/6,
+            0, 0, Math.PI * 2
+        );
         ctx.fill();
 
         // NPC本体
         ctx.fillStyle = npc.color;
         ctx.beginPath();
-        ctx.arc(px, py, radius, 0, Math.PI * 2);
-        ctx.fill();
-
-        // ハイライト
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.beginPath();
-        ctx.arc(px - radius * 0.3, py - radius * 0.3, radius * 0.3, 0, Math.PI * 2);
+        ctx.arc(
+            npc.x * TILE_SIZE + TILE_SIZE/2,
+            npc.y * TILE_SIZE + TILE_SIZE/2 + bobOffset,
+            TILE_SIZE/3,
+            0,
+            Math.PI * 2
+        );
         ctx.fill();
 
         // 会話アイコン
-        ctx.font = `${Math.max(16, TILE_SIZE * 0.4)}px sans-serif`;
+        ctx.fillStyle = '#FFD700';
+        ctx.font = '20px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('💬', px, py - radius - 10);
+        ctx.fillText('💬', npc.x * TILE_SIZE + TILE_SIZE/2, npc.y * TILE_SIZE - 5 + bobOffset);
 
-        // 名前
+        // NPC名
         ctx.fillStyle = '#fff';
-        ctx.font = `${Math.max(10, TILE_SIZE * 0.22)}px sans-serif`;
-        ctx.shadowColor = '#000';
-        ctx.shadowBlur = 3;
-        ctx.fillText(npc.name, px, py + radius + 18);
-        ctx.shadowBlur = 0;
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(npc.name, npc.x * TILE_SIZE + TILE_SIZE/2, npc.y * TILE_SIZE + TILE_SIZE + 12);
     }
-}
 
-// プレイヤーを描画
-function drawPlayer() {
-    const px = gameState.player.x * TILE_SIZE + TILE_SIZE / 2;
-    const py = gameState.player.y * TILE_SIZE + TILE_SIZE / 2;
-    const radius = TILE_SIZE / 2.5;
-    const pulseRadius = radius + Math.sin(animationTime * 0.1) * 3;
+    // プレイヤー
+    const playerBob = Math.sin(animationTime * 0.15) * 2;
 
-    // オーラ
-    const auraGradient = ctx.createRadialGradient(px, py, radius, px, py, pulseRadius + 10);
-    auraGradient.addColorStop(0, 'rgba(0, 255, 100, 0.5)');
-    auraGradient.addColorStop(1, 'rgba(0, 255, 100, 0)');
-    ctx.fillStyle = auraGradient;
+    // プレイヤーオーラ
+    const auraSize = TILE_SIZE/2 + Math.sin(animationTime * 0.1) * 5;
+    ctx.fillStyle = 'rgba(0, 255, 100, 0.2)';
     ctx.beginPath();
-    ctx.arc(px, py, pulseRadius + 10, 0, Math.PI * 2);
+    ctx.arc(
+        gameState.player.x * TILE_SIZE + TILE_SIZE/2,
+        gameState.player.y * TILE_SIZE + TILE_SIZE/2,
+        auraSize,
+        0, Math.PI * 2
+    );
     ctx.fill();
 
     // 影
     ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.beginPath();
-    ctx.ellipse(px, py + radius + 5, radius * 0.8, radius * 0.3, 0, 0, Math.PI * 2);
+    ctx.ellipse(
+        gameState.player.x * TILE_SIZE + TILE_SIZE/2,
+        gameState.player.y * TILE_SIZE + TILE_SIZE - 5,
+        TILE_SIZE/3,
+        TILE_SIZE/6,
+        0, 0, Math.PI * 2
+    );
     ctx.fill();
 
     // プレイヤー本体
-    ctx.fillStyle = '#00ff66';
+    ctx.fillStyle = '#00ff00';
     ctx.beginPath();
-    ctx.arc(px, py, radius, 0, Math.PI * 2);
+    ctx.arc(
+        gameState.player.x * TILE_SIZE + TILE_SIZE/2,
+        gameState.player.y * TILE_SIZE + TILE_SIZE/2 + playerBob,
+        TILE_SIZE/2.5,
+        0,
+        Math.PI * 2
+    );
     ctx.fill();
 
-    // ハイライト
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.beginPath();
-    ctx.arc(px - radius * 0.3, py - radius * 0.3, radius * 0.35, 0, Math.PI * 2);
-    ctx.fill();
-
-    // ボーダー
-    ctx.strokeStyle = '#00ff00';
+    // プレイヤーボーダー
+    ctx.strokeStyle = '#00ff66';
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(px, py, radius, 0, Math.PI * 2);
     ctx.stroke();
 
-    // 名前
+    // プレイヤーラベル
     ctx.fillStyle = '#0f0';
-    ctx.font = `bold ${Math.max(12, TILE_SIZE * 0.28)}px sans-serif`;
+    ctx.font = 'bold 12px sans-serif';
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 4;
-    ctx.fillText('カイト', px, py + radius + 18);
-    ctx.shadowBlur = 0;
-}
+    ctx.fillText('カイト', gameState.player.x * TILE_SIZE + TILE_SIZE/2, gameState.player.y * TILE_SIZE + TILE_SIZE + 14);
 
-// マップ情報パネル
-function drawMapInfo() {
-    const map = maps[gameState.currentMap];
-    const panelWidth = Math.min(280, canvas.width * 0.3);
-    const panelHeight = 80;
-
-    // パネル背景
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(10, 10, panelWidth, panelHeight);
-
-    // ボーダー
-    ctx.strokeStyle = map.accentColor || '#0ff';
+    // マップ名と情報表示
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(10, 10, 300, 75);
+    ctx.strokeStyle = '#0ff';
     ctx.lineWidth = 2;
-    ctx.strokeRect(10, 10, panelWidth, panelHeight);
+    ctx.strokeRect(10, 10, 300, 75);
 
-    // マップ名
-    ctx.fillStyle = map.accentColor || '#0ff';
-    ctx.font = `bold ${Math.max(14, panelWidth * 0.055)}px sans-serif`;
+    ctx.fillStyle = '#0ff';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(map.name, 20, 35);
 
-    // 説明
     ctx.fillStyle = '#aaa';
-    ctx.font = `${Math.max(11, panelWidth * 0.04)}px sans-serif`;
+    ctx.font = '12px sans-serif';
     ctx.fillText(map.description || '', 20, 55);
 
-    // 情報
     ctx.fillStyle = '#fff';
-    ctx.font = `${Math.max(11, panelWidth * 0.04)}px sans-serif`;
+    ctx.font = '12px sans-serif';
     ctx.fillText(`歩数: ${map.walkCount}  遭遇率: ${map.encounterRate}%`, 20, 75);
-}
 
-// 操作説明パネル
-function drawControlsPanel() {
-    const panelWidth = Math.min(220, canvas.width * 0.22);
-    const panelHeight = 100;
-    const panelX = canvas.width - panelWidth - 10;
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    ctx.fillRect(panelX, 10, panelWidth, panelHeight);
-
+    // 操作方法表示
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(canvas.width - 220, 10, 210, 110);
     ctx.strokeStyle = '#0ff';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(panelX, 10, panelWidth, panelHeight);
+    ctx.strokeRect(canvas.width - 220, 10, 210, 110);
 
     ctx.fillStyle = '#0ff';
-    ctx.font = `bold ${Math.max(12, panelWidth * 0.055)}px sans-serif`;
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText('操作方法', panelX + 10, 30);
-
+    ctx.fillText('操作方法', canvas.width - 210, 30);
     ctx.fillStyle = '#fff';
-    ctx.font = `${Math.max(10, panelWidth * 0.045)}px sans-serif`;
-    const controls = [
-        '↑←↓→: 移動',
-        'SPACE: アクション',
-        'Z: 神威発動',
-        'X: メニュー'
-    ];
-    controls.forEach((text, i) => {
-        ctx.fillText(text, panelX + 10, 50 + i * 15);
-    });
-}
+    ctx.font = '12px sans-serif';
+    ctx.fillText('↑←↓→: 移動', canvas.width - 210, 50);
+    ctx.fillText('SPACE: アクション（会話）', canvas.width - 210, 70);
+    ctx.fillText('Z: 神威発動', canvas.width - 210, 90);
+    ctx.fillText('X: メニュー', canvas.width - 210, 110);
 
-// ステータスバー
-function drawStatusBar() {
-    const barY = PLAYABLE_HEIGHT;
-    const barHeight = STATUS_BAR_HEIGHT;
-
-    // 背景
+    // ステータスバー
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, barY, canvas.width, barHeight);
+    ctx.fillRect(0, PLAYABLE_HEIGHT, canvas.width, STATUS_BAR_HEIGHT);
 
-    // 上部ボーダー
-    const gradient = ctx.createLinearGradient(0, barY, canvas.width, barY);
+    // 上部ライン
+    const gradient = ctx.createLinearGradient(0, PLAYABLE_HEIGHT, canvas.width, PLAYABLE_HEIGHT);
     gradient.addColorStop(0, '#0ff');
     gradient.addColorStop(0.5, '#0088ff');
     gradient.addColorStop(1, '#0ff');
     ctx.strokeStyle = gradient;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(0, barY);
-    ctx.lineTo(canvas.width, barY);
+    ctx.moveTo(0, PLAYABLE_HEIGHT);
+    ctx.lineTo(canvas.width, PLAYABLE_HEIGHT);
     ctx.stroke();
-
-    const fontSize = Math.max(12, barHeight * 0.12);
-    const barWidth = Math.min(150, canvas.width * 0.15);
-    const barHeightInner = Math.max(16, barHeight * 0.15);
-    const startY = barY + 15;
 
     // HP
     ctx.fillStyle = '#fff';
-    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`HP: ${gameState.player.hp}/${gameState.player.maxHp}`, 20, startY + 5);
+    ctx.fillText('HP: ' + gameState.player.hp + '/' + gameState.player.maxHp, 30, PLAYABLE_HEIGHT + 35);
 
+    // HPバー
+    const hpBarWidth = 200;
     const hpPercent = gameState.player.hp / gameState.player.maxHp;
     ctx.fillStyle = '#333';
-    ctx.fillRect(20, startY + 12, barWidth, barHeightInner);
+    ctx.fillRect(30, PLAYABLE_HEIGHT + 45, hpBarWidth, 25);
     ctx.fillStyle = hpPercent > 0.5 ? '#00ff00' : hpPercent > 0.25 ? '#ffff00' : '#ff0000';
-    ctx.fillRect(20, startY + 12, barWidth * hpPercent, barHeightInner);
+    ctx.fillRect(30, PLAYABLE_HEIGHT + 45, hpBarWidth * hpPercent, 25);
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(20, startY + 12, barWidth, barHeightInner);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(30, PLAYABLE_HEIGHT + 45, hpBarWidth, 25);
 
     // MP
-    const mpX = 30 + barWidth + 20;
     ctx.fillStyle = '#fff';
-    ctx.fillText(`MP: ${gameState.player.mp}/${gameState.player.maxMp}`, mpX, startY + 5);
+    ctx.fillText('MP: ' + gameState.player.mp + '/' + gameState.player.maxMp, 260, PLAYABLE_HEIGHT + 35);
 
+    // MPバー
+    const mpBarWidth = 200;
     const mpPercent = gameState.player.mp / gameState.player.maxMp;
     ctx.fillStyle = '#333';
-    ctx.fillRect(mpX, startY + 12, barWidth, barHeightInner);
-    ctx.fillStyle = '#0088ff';
-    ctx.fillRect(mpX, startY + 12, barWidth * mpPercent, barHeightInner);
+    ctx.fillRect(260, PLAYABLE_HEIGHT + 45, mpBarWidth, 25);
+    ctx.fillStyle = '#0066ff';
+    ctx.fillRect(260, PLAYABLE_HEIGHT + 45, mpBarWidth * mpPercent, 25);
     ctx.strokeStyle = '#fff';
-    ctx.strokeRect(mpX, startY + 12, barWidth, barHeightInner);
+    ctx.strokeRect(260, PLAYABLE_HEIGHT + 45, mpBarWidth, 25);
 
-    // レベル・経験値・ゴールド
-    const statsX = mpX + barWidth + 40;
+    // レベル、経験値、ゴールド
     ctx.fillStyle = '#fff';
-    ctx.fillText(`Lv.${gameState.player.level}`, statsX, startY + 5);
-    ctx.fillText(`EXP: ${gameState.player.exp}`, statsX, startY + 25);
-    ctx.fillText(`G: ${gameState.player.gold}`, statsX + 100, startY + 25);
+    ctx.fillText('Lv.' + gameState.player.level, 500, PLAYABLE_HEIGHT + 35);
+    ctx.fillText('EXP: ' + gameState.player.exp, 500, PLAYABLE_HEIGHT + 60);
+    ctx.fillText('ゴールド: ' + gameState.player.gold, 620, PLAYABLE_HEIGHT + 60);
 
-    // キャラクター名
-    const nameX = canvas.width - 150;
+    // キャラクター情報
     ctx.fillStyle = '#0f0';
-    ctx.font = `bold ${fontSize * 1.2}px sans-serif`;
+    ctx.font = 'bold 20px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText('カイト', canvas.width - 20, startY + 15);
+    ctx.fillText('カイト', canvas.width - 30, PLAYABLE_HEIGHT + 40);
     ctx.fillStyle = '#888';
-    ctx.font = `${fontSize * 0.9}px sans-serif`;
-    ctx.fillText('依人 - スサノオ', canvas.width - 20, startY + 35);
-}
+    ctx.font = '14px sans-serif';
+    ctx.fillText('依人 - スサノオ', canvas.width - 30, PLAYABLE_HEIGHT + 65);
 
-// 会話ダイアログ
-function drawDialog() {
-    if (!gameState.showDialog) return;
-
-    const dialogHeight = 120;
-    const dialogY = PLAYABLE_HEIGHT - dialogHeight - 20;
-    const dialogX = 40;
-    const dialogWidth = canvas.width - 80;
-
-    // 背景
-    ctx.fillStyle = 'rgba(0, 0, 20, 0.95)';
-    ctx.fillRect(dialogX, dialogY, dialogWidth, dialogHeight);
-
-    // ボーダー
-    ctx.strokeStyle = '#0ff';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(dialogX, dialogY, dialogWidth, dialogHeight);
-
-    // NPCアイコン
-    if (gameState.dialogNpc) {
-        ctx.fillStyle = gameState.dialogNpc.color;
-        ctx.beginPath();
-        ctx.arc(dialogX + 40, dialogY + 50, 25, 0, Math.PI * 2);
-        ctx.fill();
-
-        // NPC名
-        ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(gameState.dialogNpc.name, dialogX + 40, dialogY + 90);
-    }
-
-    // テキスト
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px sans-serif';
+    // 現在地表示
+    ctx.fillStyle = '#666';
+    ctx.font = '12px sans-serif';
     ctx.textAlign = 'left';
+    ctx.fillText(`座標: (${gameState.player.x}, ${gameState.player.y})`, 30, PLAYABLE_HEIGHT + 95);
 
-    const maxWidth = dialogWidth - 120;
-    const words = gameState.dialogText.split('');
-    let line = '';
-    let y = dialogY + 40;
+    // 会話ダイアログ
+    if (gameState.showDialog) {
+        // 半透明の背景
+        ctx.fillStyle = 'rgba(0, 0, 20, 0.95)';
+        ctx.fillRect(50, PLAYABLE_HEIGHT - 140, canvas.width - 100, 130);
+        ctx.strokeStyle = '#0ff';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(50, PLAYABLE_HEIGHT - 140, canvas.width - 100, 130);
 
-    for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i];
-        const metrics = ctx.measureText(testLine);
+        // NPCアイコン
+        if (gameState.dialogNpc) {
+            ctx.fillStyle = gameState.dialogNpc.color;
+            ctx.beginPath();
+            ctx.arc(100, PLAYABLE_HEIGHT - 80, 30, 0, Math.PI * 2);
+            ctx.fill();
 
-        if (metrics.width > maxWidth && i > 0) {
-            ctx.fillText(line, dialogX + 90, y);
-            line = words[i];
-            y += 25;
-        } else {
-            line = testLine;
+            // NPC名
+            ctx.fillStyle = '#0ff';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(gameState.dialogNpc.name, 100, PLAYABLE_HEIGHT - 30);
         }
-    }
-    ctx.fillText(line, dialogX + 90, y);
 
-    // 続きインジケーター
-    const indicatorPulse = Math.sin(animationTime * 0.15) * 0.5 + 0.5;
-    ctx.fillStyle = `rgba(0, 255, 255, ${indicatorPulse})`;
-    ctx.font = 'bold 14px sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText('▼ SPACE', dialogX + dialogWidth - 15, dialogY + dialogHeight - 15);
+        // テキスト
+        ctx.fillStyle = '#fff';
+        ctx.font = '18px sans-serif';
+        ctx.textAlign = 'left';
+
+        // テキストを折り返し
+        const maxWidth = canvas.width - 250;
+        const words = gameState.dialogText.split('');
+        let line = '';
+        let y = PLAYABLE_HEIGHT - 110;
+
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line + words[i];
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line, 160, y);
+                line = words[i];
+                y += 28;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, 160, y);
+
+        // 続きのインジケーター
+        const indicatorPulse = Math.sin(animationTime * 0.15) * 0.5 + 0.5;
+        ctx.fillStyle = `rgba(0, 255, 255, ${indicatorPulse})`;
+        ctx.font = 'bold 14px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('▼ SPACE で閉じる', canvas.width - 70, PLAYABLE_HEIGHT - 20);
+    }
 }
 
-// メイン描画
-function drawGame() {
-    const map = maps[gameState.currentMap];
-
-    // 背景クリア
-    ctx.fillStyle = map.bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // プレイエリアのみに描画
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, canvas.width, PLAYABLE_HEIGHT);
-    ctx.clip();
-
-    // 床タイル
-    drawFloorTiles();
-
-    // 障害物
-    drawObstacles();
-
-    // ポータル
-    drawPortals();
-
-    // NPC
-    drawNPCs();
-
-    // プレイヤー
-    drawPlayer();
-
-    // マップ情報
-    drawMapInfo();
-
-    // 操作説明
-    drawControlsPanel();
-
-    // ダイアログ
-    drawDialog();
-
-    ctx.restore();
-
-    // ステータスバー
-    drawStatusBar();
+// 色を調整するヘルパー関数
+function adjustColor(hex, amount) {
+    const num = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, Math.max(0, (num >> 16) + amount));
+    const g = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amount));
+    const b = Math.min(255, Math.max(0, (num & 0x0000FF) + amount));
+    return `rgb(${r}, ${g}, ${b})`;
 }
 
 // キーボード入力
@@ -910,11 +740,6 @@ document.addEventListener('keyup', (e) => {
     gameState.keys[e.key] = false;
 });
 
-// ウィンドウリサイズ対応
-window.addEventListener('resize', () => {
-    resizeCanvas();
-});
-
 // ゲームループ
 function gameLoop() {
     animationTime++;
@@ -930,9 +755,5 @@ function startGame() {
 
 // 初期化
 window.addEventListener('load', () => {
-    resizeCanvas();
-    // 初期位置をグリッドの中央に設定
-    gameState.player.x = Math.floor(GRID_WIDTH / 2);
-    gameState.player.y = Math.floor(GRID_HEIGHT / 2);
     setTimeout(startGame, 100);
 });
