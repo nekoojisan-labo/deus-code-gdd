@@ -33,8 +33,81 @@ const gameState = {
     dialogNpc: null,
     keys: {},
     lastMoveTime: 0,
-    moveDelay: 150
+    moveDelay: 150,
+    // シーン管理：'opening' | 'transition' | 'map'
+    scene: 'opening',
+    openingIndex: 0,
+    lastOpeningInputTime: 0,
+    openingInputDelay: 220,
+    transitionAlpha: 0,
+    transitionDirection: 'in', // 'in' = 黒へフェード, 'out' = 黒から戻す
+    introDialogShown: false
 };
+
+// オープニングシナリオ（シナリオデータに準拠）
+const openingScenes = [
+    {
+        type: 'title',
+        title: 'デウス・コード',
+        subtitle: '八百万の神託',
+        body: [
+            '神々の力をその身に降ろし、',
+            'AIが支配する無機質な世界に、',
+            '人の心を取り戻せ。'
+        ],
+        accentColor: '#0ff'
+    },
+    {
+        type: 'narration',
+        title: '西暦 20XX 年 ─ シンジュク',
+        body: [
+            '全知統制システムAI『アーク』が、',
+            'この街の全てを管理していた。',
+            '',
+            '犯罪も、貧困も、争いも消えた。',
+            '同時に、人々から "感情" も奪われた。'
+        ],
+        accentColor: '#88aaff'
+    },
+    {
+        type: 'narration',
+        title: '俺の名は ─ カイト',
+        body: [
+            'ごく普通の高校生だった。',
+            '──昨日までは。',
+            '',
+            '目の前で親友が "処理" された。',
+            '"非効率な感情を持っている" という、',
+            'ただ、それだけの理由で。'
+        ],
+        accentColor: '#ff5566'
+    },
+    {
+        type: 'awakening',
+        title: '── 覚 醒 ──',
+        body: [
+            '胸の奥で、何かが咆哮した。',
+            '',
+            '『叫べ。怒れ。',
+            '  儂はスサノオ ──',
+            '  お前の怒りに応えよう。』',
+            '',
+            '俺の中に、神が宿った。'
+        ],
+        accentColor: '#ffcc33'
+    },
+    {
+        type: 'finale',
+        title: '物語の、はじまり',
+        body: [
+            'シンジュク中央区画。',
+            'アークの監視網の、ど真ん中。',
+            '',
+            'ここから、俺の戦いが始まる。'
+        ],
+        accentColor: '#00ff88'
+    }
+];
 
 // マップデータ（大画面用に調整）
 const maps = {
@@ -702,6 +775,205 @@ function drawGame() {
     }
 }
 
+// オープニング背景（縦スキャンライン＋粒子）
+function drawOpeningBackground(scene) {
+    // ベース背景
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGrad.addColorStop(0, '#05050f');
+    bgGrad.addColorStop(0.5, '#0a0a20');
+    bgGrad.addColorStop(1, '#020208');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 縦スキャンライン（ゆっくり下に流れる）
+    ctx.strokeStyle = `rgba(255, 255, 255, 0.04)`;
+    ctx.lineWidth = 1;
+    const lineSpacing = 4;
+    const offset = (animationTime * 0.5) % lineSpacing;
+    for (let y = -offset; y < canvas.height; y += lineSpacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+
+    // 上下の装飾バー（シーンのアクセントカラー）
+    const barAlpha = 0.85;
+    ctx.fillStyle = scene.accentColor;
+    ctx.globalAlpha = barAlpha;
+    ctx.fillRect(0, 0, canvas.width, 6);
+    ctx.fillRect(0, canvas.height - 6, canvas.width, 6);
+    ctx.globalAlpha = 1;
+
+    // サイドのコーナー装飾
+    ctx.strokeStyle = scene.accentColor;
+    ctx.lineWidth = 2;
+    const cornerSize = 40;
+    const margin = 30;
+    // 左上
+    ctx.beginPath();
+    ctx.moveTo(margin, margin + cornerSize);
+    ctx.lineTo(margin, margin);
+    ctx.lineTo(margin + cornerSize, margin);
+    ctx.stroke();
+    // 右上
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - margin - cornerSize, margin);
+    ctx.lineTo(canvas.width - margin, margin);
+    ctx.lineTo(canvas.width - margin, margin + cornerSize);
+    ctx.stroke();
+    // 左下
+    ctx.beginPath();
+    ctx.moveTo(margin, canvas.height - margin - cornerSize);
+    ctx.lineTo(margin, canvas.height - margin);
+    ctx.lineTo(margin + cornerSize, canvas.height - margin);
+    ctx.stroke();
+    // 右下
+    ctx.beginPath();
+    ctx.moveTo(canvas.width - margin - cornerSize, canvas.height - margin);
+    ctx.lineTo(canvas.width - margin, canvas.height - margin);
+    ctx.lineTo(canvas.width - margin, canvas.height - margin - cornerSize);
+    ctx.stroke();
+
+    // 覚醒シーン専用の放射状グロー
+    if (scene.type === 'awakening') {
+        const pulse = Math.sin(animationTime * 0.07) * 0.15 + 0.35;
+        const glow = ctx.createRadialGradient(
+            canvas.width / 2, canvas.height / 2, 50,
+            canvas.width / 2, canvas.height / 2, canvas.width / 1.5
+        );
+        glow.addColorStop(0, `rgba(255, 204, 51, ${pulse})`);
+        glow.addColorStop(0.4, `rgba(255, 100, 0, ${pulse * 0.3})`);
+        glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+// オープニング描画
+function drawOpening() {
+    const scene = openingScenes[gameState.openingIndex];
+
+    drawOpeningBackground(scene);
+
+    // タイトル
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = scene.accentColor;
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = scene.accentColor;
+    const titleSize = scene.type === 'title' ? 68 : 44;
+    ctx.font = `bold ${titleSize}px sans-serif`;
+    const titleY = scene.type === 'title' ? 230 : 180;
+    ctx.fillText(scene.title, canvas.width / 2, titleY);
+    ctx.shadowBlur = 0;
+
+    // サブタイトル（タイトルシーンのみ）
+    if (scene.subtitle) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.fillText(scene.subtitle, canvas.width / 2, 295);
+
+        // タイトル下の区切り線
+        ctx.strokeStyle = scene.accentColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2 - 200, 335);
+        ctx.lineTo(canvas.width / 2 + 200, 335);
+        ctx.stroke();
+    }
+
+    // 本文
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font = '24px sans-serif';
+    const lineHeight = 38;
+    const bodyStartY = scene.type === 'title' ? 410 : canvas.height / 2 - 30;
+    let y = bodyStartY;
+    for (const line of scene.body) {
+        ctx.fillText(line, canvas.width / 2, y);
+        y += lineHeight;
+    }
+
+    // ページインジケーター
+    ctx.fillStyle = '#555';
+    ctx.font = '14px sans-serif';
+    const total = openingScenes.length;
+    const pageText = `${gameState.openingIndex + 1} / ${total}`;
+    ctx.fillText(pageText, canvas.width / 2, canvas.height - 40);
+
+    // 進行ドット
+    const dotSpacing = 18;
+    const dotsTotalWidth = (total - 1) * dotSpacing;
+    const dotsStartX = canvas.width / 2 - dotsTotalWidth / 2;
+    for (let i = 0; i < total; i++) {
+        ctx.fillStyle = i === gameState.openingIndex ? scene.accentColor : '#333';
+        ctx.beginPath();
+        ctx.arc(dotsStartX + i * dotSpacing, canvas.height - 65, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    // SPACEプロンプト
+    const pulse = Math.sin(animationTime * 0.08) * 0.4 + 0.6;
+    ctx.fillStyle = `rgba(0, 255, 255, ${pulse})`;
+    ctx.font = 'bold 18px sans-serif';
+    const isLast = gameState.openingIndex === openingScenes.length - 1;
+    const promptText = isLast ? '▼ SPACE で物語を始める' : '▼ SPACE で進む';
+    ctx.fillText(promptText, canvas.width / 2, canvas.height - 90);
+}
+
+// オープニングを進める
+function advanceOpening() {
+    const now = Date.now();
+    if (now - gameState.lastOpeningInputTime < gameState.openingInputDelay) {
+        return;
+    }
+    gameState.lastOpeningInputTime = now;
+
+    if (gameState.openingIndex < openingScenes.length - 1) {
+        gameState.openingIndex++;
+    } else {
+        // 最後のパネル → マップへの遷移開始
+        gameState.scene = 'transition';
+        gameState.transitionDirection = 'in';
+        gameState.transitionAlpha = 0;
+    }
+}
+
+// 遷移更新（フェードイン→アウト）
+function updateTransition() {
+    if (gameState.transitionDirection === 'in') {
+        gameState.transitionAlpha = Math.min(1, gameState.transitionAlpha + 0.04);
+        if (gameState.transitionAlpha >= 1) {
+            // 完全な暗転中にマップ準備＆導入セリフセット
+            gameState.transitionDirection = 'out';
+            if (!gameState.introDialogShown) {
+                gameState.showDialog = true;
+                gameState.dialogText = '（……シンジュク中央区画。アークが「最適化」した街。人々の目には光がない。 ──まずは情報を集めよう。誰かに話しかけてみるか。）';
+                gameState.dialogNpc = { name: 'カイト（独白）', color: '#00ff66' };
+                gameState.introDialogShown = true;
+            }
+        }
+    } else {
+        gameState.transitionAlpha = Math.max(0, gameState.transitionAlpha - 0.025);
+        if (gameState.transitionAlpha <= 0) {
+            gameState.scene = 'map';
+        }
+    }
+}
+
+// 遷移描画
+function drawTransition() {
+    if (gameState.transitionDirection === 'in') {
+        // フェードイン中はオープニングの最後のパネルを表示
+        drawOpening();
+    } else {
+        // フェードアウト中はマップを表示
+        drawGame();
+    }
+    ctx.fillStyle = `rgba(0, 0, 0, ${gameState.transitionAlpha})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 // 色を調整するヘルパー関数
 function adjustColor(hex, amount) {
     const num = parseInt(hex.slice(1), 16);
@@ -714,6 +986,21 @@ function adjustColor(hex, amount) {
 // キーボード入力
 document.addEventListener('keydown', (e) => {
     gameState.keys[e.key] = true;
+
+    // オープニング中は SPACE / Enter のみ受け付ける
+    if (gameState.scene === 'opening') {
+        if (e.key === ' ' || e.key === 'Enter') {
+            advanceOpening();
+            e.preventDefault();
+        }
+        return;
+    }
+
+    // 遷移中は入力を無効化
+    if (gameState.scene === 'transition') {
+        e.preventDefault();
+        return;
+    }
 
     if (e.key === 'ArrowUp') {
         movePlayer(0, -1);
@@ -743,7 +1030,14 @@ document.addEventListener('keyup', (e) => {
 // ゲームループ
 function gameLoop() {
     animationTime++;
-    drawGame();
+    if (gameState.scene === 'opening') {
+        drawOpening();
+    } else if (gameState.scene === 'transition') {
+        updateTransition();
+        drawTransition();
+    } else {
+        drawGame();
+    }
     requestAnimationFrame(gameLoop);
 }
 
