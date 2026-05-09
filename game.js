@@ -14,6 +14,25 @@ const PLAYABLE_HEIGHT = canvas.height - STATUS_BAR_HEIGHT;
 // アニメーション用
 let animationTime = 0;
 
+// 画像アセット
+const spriteAssets = {
+    player: new Image(),
+    npc: new Image(),
+    obstacle: new Image(),
+    backgrounds: {
+        city: new Image(),
+        residential: new Image(),
+        underground: new Image()
+    }
+};
+
+spriteAssets.player.src = 'assets/player.svg';
+spriteAssets.npc.src = 'assets/npc.svg';
+spriteAssets.obstacle.src = 'assets/obstacle.svg';
+spriteAssets.backgrounds.city.src = 'assets/bg_city.svg';
+spriteAssets.backgrounds.residential.src = 'assets/bg_residential.svg';
+spriteAssets.backgrounds.underground.src = 'assets/bg_underground.svg';
+
 // ゲーム状態
 const gameState = {
     player: {
@@ -44,6 +63,7 @@ const maps = {
         walkCount: 176,
         encounterRate: 45,
         bgColor: '#1a1a2e',
+        backgroundType: 'city',
         npcs: [
             { x: 4, y: 3, name: '武器商人リョウ', color: '#90EE90', dialog: '良い武器が入ったぜ！見ていくかい？' },
             { x: 8, y: 3, name: '防具商人サクラ', color: '#FFB6C1', dialog: '防具なら私に任せて！' },
@@ -80,6 +100,7 @@ const maps = {
         walkCount: 120,
         encounterRate: 20,
         bgColor: '#1e2a1e',
+        backgroundType: 'residential',
         npcs: [
             { x: 8, y: 5, name: '老人', color: '#D3D3D3', dialog: '最近は物騒でのう...' },
             { x: 14, y: 6, name: '子供', color: '#FFD700', dialog: 'ぼく、依人になりたいな！' }
@@ -105,6 +126,7 @@ const maps = {
         walkCount: 270,
         encounterRate: 0,
         bgColor: '#2a1a2e',
+        backgroundType: 'city',
         npcs: [
             { x: 12, y: 8, name: '感情を失った市民', color: '#B0C4DE', dialog: '...買い物...効率的...アーク様...' },
             { x: 14, y: 4, name: 'アカリ', color: '#FFD700', dialog: 'この街の人たち、何かおかしいわ...' }
@@ -141,6 +163,7 @@ const maps = {
         walkCount: 200,
         encounterRate: 15,
         bgColor: '#2a2a1e',
+        backgroundType: 'city',
         npcs: [
             { x: 7, y: 6, name: '商人', color: '#FFA500', dialog: 'いらっしゃい！何か探してる？' },
             { x: 17, y: 6, name: '巡回ドローン', color: '#FF6347', dialog: '...監視中...異常なし...' }
@@ -173,6 +196,7 @@ const maps = {
         walkCount: 150,
         encounterRate: 30,
         bgColor: '#1a2a3a',
+        backgroundType: 'city',
         npcs: [
             { x: 12, y: 7, name: 'AI管理官', color: '#00CED1', dialog: 'アークの意志に従え...' },
             { x: 8, y: 5, name: 'ヤミ', color: '#9370DB', dialog: 'ここがAIの中枢か...興味深いな' }
@@ -197,6 +221,7 @@ const maps = {
         walkCount: 300,
         encounterRate: 0,
         bgColor: '#0a0a1a',
+        backgroundType: 'underground',
         npcs: [
             { x: 7, y: 6, name: 'レジスタンス', color: '#FF4500', dialog: 'アークを倒す...それが俺たちの使命だ' },
             { x: 17, y: 6, name: '情報屋', color: '#DAA520', dialog: '何か知りたいことは？' },
@@ -358,8 +383,13 @@ function drawGame() {
     const map = maps[gameState.currentMap];
 
     // 背景
-    ctx.fillStyle = map.bgColor;
-    ctx.fillRect(0, 0, canvas.width, PLAYABLE_HEIGHT);
+    const bgImage = spriteAssets.backgrounds[map.backgroundType || 'city'];
+    if (bgImage && bgImage.complete) {
+        ctx.drawImage(bgImage, 0, 0, canvas.width, PLAYABLE_HEIGHT);
+    } else {
+        ctx.fillStyle = map.bgColor;
+        ctx.fillRect(0, 0, canvas.width, PLAYABLE_HEIGHT);
+    }
 
     // グリッド（床タイル風）
     for (let x = 0; x < GRID_WIDTH; x++) {
@@ -388,13 +418,23 @@ function drawGame() {
 
     // 障害物
     for (let obs of map.obstacles) {
-        ctx.fillStyle = '#3a3a4a';
-        ctx.fillRect(
-            obs.x * TILE_SIZE,
-            obs.y * TILE_SIZE,
-            obs.width * TILE_SIZE,
-            obs.height * TILE_SIZE
-        );
+        if (spriteAssets.obstacle.complete) {
+            ctx.drawImage(
+                spriteAssets.obstacle,
+                obs.x * TILE_SIZE,
+                obs.y * TILE_SIZE,
+                obs.width * TILE_SIZE,
+                obs.height * TILE_SIZE
+            );
+        } else {
+            ctx.fillStyle = '#3a3a4a';
+            ctx.fillRect(
+                obs.x * TILE_SIZE,
+                obs.y * TILE_SIZE,
+                obs.width * TILE_SIZE,
+                obs.height * TILE_SIZE
+            );
+        }
         // 建物の影
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.fillRect(
@@ -466,16 +506,26 @@ function drawGame() {
         ctx.fill();
 
         // NPC本体
-        ctx.fillStyle = npc.color;
-        ctx.beginPath();
-        ctx.arc(
-            npc.x * TILE_SIZE + TILE_SIZE/2,
-            npc.y * TILE_SIZE + TILE_SIZE/2 + bobOffset,
-            TILE_SIZE/3,
-            0,
-            Math.PI * 2
-        );
-        ctx.fill();
+        if (spriteAssets.npc.complete) {
+            ctx.drawImage(
+                spriteAssets.npc,
+                npc.x * TILE_SIZE + TILE_SIZE * 0.15,
+                npc.y * TILE_SIZE + TILE_SIZE * 0.05 + bobOffset,
+                TILE_SIZE * 0.7,
+                TILE_SIZE * 0.9
+            );
+        } else {
+            ctx.fillStyle = npc.color;
+            ctx.beginPath();
+            ctx.arc(
+                npc.x * TILE_SIZE + TILE_SIZE/2,
+                npc.y * TILE_SIZE + TILE_SIZE/2 + bobOffset,
+                TILE_SIZE/3,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
 
         // 会話アイコン
         ctx.fillStyle = '#FFD700';
@@ -518,16 +568,26 @@ function drawGame() {
     ctx.fill();
 
     // プレイヤー本体
-    ctx.fillStyle = '#00ff00';
-    ctx.beginPath();
-    ctx.arc(
-        gameState.player.x * TILE_SIZE + TILE_SIZE/2,
-        gameState.player.y * TILE_SIZE + TILE_SIZE/2 + playerBob,
-        TILE_SIZE/2.5,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
+    if (spriteAssets.player.complete) {
+        ctx.drawImage(
+            spriteAssets.player,
+            gameState.player.x * TILE_SIZE + TILE_SIZE * 0.1,
+            gameState.player.y * TILE_SIZE + playerBob,
+            TILE_SIZE * 0.8,
+            TILE_SIZE
+        );
+    } else {
+        ctx.fillStyle = '#00ff00';
+        ctx.beginPath();
+        ctx.arc(
+            gameState.player.x * TILE_SIZE + TILE_SIZE/2,
+            gameState.player.y * TILE_SIZE + TILE_SIZE/2 + playerBob,
+            TILE_SIZE/2.5,
+            0,
+            Math.PI * 2
+        );
+        ctx.fill();
+    }
 
     // プレイヤーボーダー
     ctx.strokeStyle = '#00ff66';
