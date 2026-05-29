@@ -29,10 +29,18 @@ const maps = {
             { x: 16, y: 3, name: '魔法商人ミコト', color: '#DDA0DD', shopId: 'mikoto', dialog: '神威を高める品を揃えているわ' },
             { x: 6, y: 7, name: '宿屋の主人', color: '#FFA07A', shopId: 'inn_shinjuku', dialog: '疲れただろう？ゆっくり休んでいきな' },
             { x: 10, y: 7, name: '新宿区長', color: '#F0E68C', dialog: [
-                { flags: ['akari_joined'], text: '巫女様まで反アークに…時代が動いておるな。' },
-                { flags: [], text: 'ようこそ新宿中央区画へ。アーク様のおかげで平和そのものだ。' }
+                // フォールバックを先頭、進行が深いものほど後ろ（最後に一致した行が採用される）
+                { flags: [], text: 'ようこそ新宿中央区画へ。アーク様のおかげで平和そのものだ。' },
+                { flags: ['akari_joined'], text: '巫女様まで反アークに…時代が動いておるのかもしれん。' },
+                { flags: ['arc_truth'], text: 'アーク様が間違っていた…？ わしには、もう何が正しいのか。' },
+                { flags: ['game_cleared'], text: 'この胸の高鳴り…これが "心" か。よくぞ取り戻してくれた！' }
             ] },
-            { x: 18, y: 7, name: 'ギルドマスター', color: '#98FB98', dialog: 'クエストを受けていくかい？' }
+            { x: 18, y: 7, name: 'ギルドマスター', color: '#98FB98', dialog: [
+                { flags: [], text: 'クエストを受けていくかい？' },
+                { flags: ['knows_truth_arc'], text: '神社の巫女には会えたか？ 仲間は多いほどいい。' },
+                { flags: ['haru_revealed'], text: '中枢に皆が眠っている、だと…？ ならば、行くしかあるまい。' },
+                { flags: ['game_cleared'], text: 'お前さんたちは、神話になった。胸を張って生きろ。' }
+            ] }
         ],
         obstacles: [
             { x: 5, y: 5, width: 3, height: 2, name: '街の住居' }
@@ -52,7 +60,11 @@ const maps = {
         npcs: [
             { x: 12, y: 6, name: 'アカリ', color: '#FFD700', hideWhenFlag: 'akari_joined',
               dialog: 'あなた…ただの人間じゃないわね。神の気配を感じる…' },
-            { x: 7, y: 8, name: '老巫女', color: '#D3D3D3', dialog: 'この社には、まだ神がまどろんでおられる…' }
+            { x: 7, y: 8, name: '老巫女', color: '#D3D3D3', dialog: [
+                { flags: [], text: 'この社には、まだ神がまどろんでおられる…' },
+                { flags: ['akari_joined'], text: 'アカリを連れて行くのですね。あの子の光を、どうか守って。' },
+                { flags: ['game_cleared'], text: '神々は役目を終え、再び眠りにつかれた。…ありがとう。' }
+            ] }
         ],
         obstacles: [
             { x: 10, y: 2, width: 4, height: 2, name: '社殿' }
@@ -69,7 +81,10 @@ const maps = {
         walkCount: 120, encounterRate: 15, bgColor: '#1e2a1e',
         npcs: [
             { x: 8, y: 5, name: '老人', color: '#D3D3D3', dialog: '最近は物騒でのう...' },
-            { x: 14, y: 6, name: '子供', color: '#FFD700', dialog: 'ぼく、依人になりたいな！' }
+            { x: 14, y: 6, name: '子供', color: '#FFD700', dialog: [
+                { flags: [], text: 'ぼく、依人になりたいな！' },
+                { flags: ['game_cleared'], text: 'お兄ちゃんたち、神様だったんだ！ すげー！ ぼくも強くなる！' }
+            ] }
         ],
         obstacles: [
             { x: 4, y: 3, width: 3, height: 2, name: '民家' },
@@ -86,7 +101,10 @@ const maps = {
         description: 'ネオンが輝く大型商業施設',
         walkCount: 270, encounterRate: 0, bgColor: '#2a1a2e',
         npcs: [
-            { x: 12, y: 8, name: '感情を失った市民', color: '#B0C4DE', dialog: '...買い物...効率的...アーク様...' },
+            { x: 12, y: 8, name: '感情を失った市民', color: '#B0C4DE', dialog: [
+                { flags: [], text: '...買い物...効率的...アーク様...' },
+                { flags: ['game_cleared'], text: 'あれ…私、今まで何を…？ 涙が…止まらない。あぁ、生きてるんだ。' }
+            ] },
             { x: 8, y: 4, name: '案内ロボット', color: '#87CEEB', dialog: 'イラッシャイマセ。最適ナ買物体験ヲ。' }
         ],
         obstacles: [],
@@ -124,8 +142,16 @@ const maps = {
         npcs: [
             { x: 12, y: 6, name: 'ヤミ', color: '#9370DB', hideWhenFlag: 'yami_joined',
               dialog: 'ここがAIの裏側さ。…お前、面白い力を持ってるな。' },
-            { x: 7, y: 6, name: 'レジスタンス', color: '#FF4500', dialog: 'アークを倒す...それが俺たちの使命だ' },
-            { x: 17, y: 6, name: '情報屋', color: '#DAA520', dialog: '何か知りたいことは？タダじゃないがね。' }
+            { x: 7, y: 6, name: 'レジスタンス', color: '#FF4500', dialog: [
+                { flags: [], text: 'アークを倒す...それが俺たちの使命だ' },
+                { flags: ['haru_revealed'], text: '処理された家族が、中枢で生きてるだと…？ なら諦めねえ！' },
+                { flags: ['game_cleared'], text: 'みんな帰ってきた…！ 戦い続けて、よかった。' }
+            ] },
+            { x: 17, y: 6, name: '情報屋', color: '#DAA520', dialog: [
+                { flags: [], text: '何か知りたいことは？タダじゃないがね。' },
+                { flags: ['has_scripture'], text: '"八百万、揃いて扉開く"…その古文書、本物みたいだな。' },
+                { flags: ['arc_truth'], text: '都庁の先、アクセスカードがありゃ中枢へ抜けられる。気をつけな。' }
+            ] }
         ],
         obstacles: [
             { x: 4, y: 3, width: 3, height: 2, name: '武器庫' },
@@ -161,7 +187,11 @@ const maps = {
         description: 'アークの制御中枢へ通じる場所',
         walkCount: 150, encounterRate: 25, bgColor: '#1a2a3a',
         npcs: [
-            { x: 12, y: 7, name: 'AI管理官', color: '#00CED1', dialog: 'アークの意志に従え...それが最適だ...' }
+            { x: 12, y: 7, name: 'AI管理官', color: '#00CED1', dialog: [
+                { flags: [], text: 'アークの意志に従え...それが最適だ...' },
+                { flags: ['arc_truth'], text: 'アーク様でさえ揺らいでいる…私は、何を信じれば…' },
+                { flags: ['game_cleared'], text: '感情が流れ込んでくる…これが迷い、そして…希望か。' }
+            ] }
         ],
         obstacles: [
             { x: 10, y: 3, width: 4, height: 2, name: '制御装置' }
