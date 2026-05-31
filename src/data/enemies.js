@@ -7,39 +7,39 @@
 
 const enemies = {
     watcher: {
-        name: 'ウォッチャー', hp: 24, atk: 8, def: 3, spd: 9, exp: 5, gold: 8,
+        name: 'ウォッチャー', hp: 22, atk: 8, def: 3, spd: 9, exp: 5, gold: 8,
         skills: [], drops: [{ id: 'energy_drink', rate: 0.2 }],
         color: '#ff4444', sprite: 'sphere'
     },
     dust_golem: {
-        name: 'ダスト・ゴーレム', hp: 90, atk: 16, def: 12, spd: 4, exp: 24, gold: 40,
+        name: 'ダスト・ゴーレム', hp: 55, atk: 14, def: 8, spd: 4, exp: 24, gold: 40,
         skills: [], drops: [{ id: 'onigiri', rate: 0.3 }],
         color: '#7a6a4a', sprite: 'golem'
     },
     dominion: {
-        name: 'ドミニオン', hp: 140, atk: 22, def: 14, spd: 13, exp: 55, gold: 90, elite: true,
+        name: 'ドミニオン', hp: 130, atk: 22, def: 12, spd: 13, exp: 55, gold: 90, elite: true,
         skills: [], drops: [{ id: 'access_card', rate: 1.0 }],
         color: '#eeeeee', sprite: 'commander'
     },
 
     // ── ボス（エンカウント表には載せず、章イベントから出現） ──
     cerberus: {
-        name: 'ケルベロス', hp: 160, atk: 18, def: 8, spd: 11, exp: 60, gold: 120, boss: true,
+        name: 'ケルベロス', hp: 110, atk: 17, def: 6, spd: 11, exp: 60, gold: 120, boss: true,
         skills: [], drops: [{ id: 'memory_chip', rate: 1.0 }],
         color: '#222222', sprite: 'wolf'
     },
     alraune: {
-        name: 'アルラウネ', hp: 200, atk: 18, def: 8, spd: 8, exp: 90, gold: 160, boss: true,
+        name: 'アルラウネ', hp: 160, atk: 19, def: 6, spd: 8, exp: 90, gold: 160, boss: true,
         skills: [], drops: [{ id: 'shinki_shard', rate: 1.0 }],
         color: '#33aa88', sprite: 'tree'
     },
     construct: {
-        name: 'コンストラクト', hp: 300, atk: 24, def: 16, spd: 10, exp: 200, gold: 400, boss: true,
+        name: 'コンストラクト', hp: 180, atk: 22, def: 10, spd: 10, exp: 200, gold: 400, boss: true,
         skills: [], drops: [{ id: 'shrine_fuda', rate: 1.0 }],
         color: '#8888ff', sprite: 'spider'
     },
     arc: {
-        name: 'アーク', hp: 420, atk: 26, def: 18, spd: 14, exp: 0, gold: 0, boss: true, finalForm: true,
+        name: 'アーク', hp: 220, atk: 24, def: 12, spd: 14, exp: 0, gold: 0, boss: true, finalForm: true,
         skills: [], drops: [],
         color: '#cfe8ff', sprite: 'core'
     }

@@ -42,15 +42,22 @@ function menuOptions() {
     const m = gameState.menu;
     const ctx = m.context || {};
     switch (m.page) {
-        case 'root':
-            return [
+        case 'root': {
+            const root = [
                 { label: 'アイテム',    act: () => pushPage('item') },
                 { label: '神威',        act: () => pushPage('kamuiMember') },
                 { label: 'そうび',      act: () => pushPage('equipMember') },
                 { label: 'ステータス',  act: () => pushPage('statusMember') },
-                { label: 'セーブ',      act: () => { saveGame(); m.message = 'セーブした（神社の印）'; } },
-                { label: 'とじる',      act: closeMenu }
+                { label: 'セーブ',      act: () => { saveGame(); m.message = 'セーブした（神社の印）'; } }
             ];
+            if (hasFlag('game_cleared')) {
+                root.push({ label: 'タイトルへ戻る', act: () => {
+                    closeMenu(); newGame(); gameState.scene = 'title';
+                } });
+            }
+            root.push({ label: 'とじる', act: closeMenu });
+            return root;
+        }
 
         case 'item': {
             const opts = gameState.inventory.map(slot => ({

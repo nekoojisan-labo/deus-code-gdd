@@ -60,9 +60,9 @@ const maps = {
         npcs: [
             { x: 12, y: 6, name: 'アカリ', color: '#FFD700', hideWhenFlag: 'akari_joined',
               dialog: 'あなた…ただの人間じゃないわね。神の気配を感じる…' },
-            { x: 7, y: 8, name: '老巫女', color: '#D3D3D3', dialog: [
-                { flags: [], text: 'この社には、まだ神がまどろんでおられる…' },
-                { flags: ['akari_joined'], text: 'アカリを連れて行くのですね。あの子の光を、どうか守って。' },
+            { x: 7, y: 8, name: '老巫女', color: '#D3D3D3', autoSave: true, dialog: [
+                { flags: [], text: 'この社には、まだ神がまどろんでおられる…旅の足跡を、印に残しておきましょう。' },
+                { flags: ['akari_joined'], text: 'アカリを連れて行くのですね。…道中の刻、印に焼き付けました。' },
                 { flags: ['game_cleared'], text: '神々は役目を終え、再び眠りにつかれた。…ありがとう。' }
             ] }
         ],

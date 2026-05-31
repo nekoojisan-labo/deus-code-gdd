@@ -15,6 +15,10 @@ function interactNpc(npc) {
         gameState.showDialog = true;
         gameState.dialogText = text;
         gameState.dialogNpc = npc;
+        // 神社の印など、会話自体がセーブのトリガーになる NPC
+        if (npc.autoSave) {
+            try { saveGame(); } catch (e) { /* セーブ不可は無視 */ }
+        }
     }
 }
 
@@ -60,7 +64,7 @@ function fireChapter(ch) {
     runEvents(events, function () { applyOnComplete(ch.onComplete); });
 }
 
-// 章完了処理（フラグ付与・次章・目的更新）
+// 章完了処理（フラグ付与・次章・目的更新・オートセーブ）
 function applyOnComplete(oc) {
     if (oc) {
         (oc.setFlags || []).forEach(f => setFlag(f));
@@ -69,6 +73,8 @@ function applyOnComplete(oc) {
     }
     gameState.scene = 'map';
     gameState.showDialog = false;
+    // 章を越えた直後はオートセーブ（戦闘ボスを倒した進捗を確実に残す）
+    try { saveGame(); } catch (e) { /* セーブ不可環境は無視 */ }
 }
 
 // ── イベントキュー（章イベントの逐次実行） ───────────────────────
