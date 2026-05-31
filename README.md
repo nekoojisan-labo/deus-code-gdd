@@ -19,6 +19,7 @@ deus-code-gdd/
 ├── src/                    # ゲーム本体（骨格＝ロジック と 描画 を分離）
 │   ├── constants.js        #   定数・canvas/ctx
 │   ├── util.js             #   汎用ヘルパー
+│   ├── assets.js           #   画像アセット読み込みフック（field.png 等）
 │   ├── state.js            #   gameState / newGame / ステータス同期
 │   ├── save.js             #   セーブ・ロード（localStorage）
 │   ├── input.js            #   キーボード入力ルータ（シーン別）

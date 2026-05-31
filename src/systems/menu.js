@@ -127,10 +127,14 @@ function menuOptions() {
 
         case 'shop': {
             const shop = shops[ctx.shopId];
-            const opts = shop.stock.map(id => ({
-                label: `${items[id].name}  ${items[id].price}G`,
-                desc: items[id].desc || '',
-                act: () => buyItem(id)
+            // stock は ID 文字列 か { id, requireFlag } の混在を許容
+            const visible = shop.stock
+                .map(s => typeof s === 'string' ? { id: s } : s)
+                .filter(s => !s.requireFlag || hasFlag(s.requireFlag));
+            const opts = visible.map(s => ({
+                label: `${items[s.id].name}  ${items[s.id].price}G`,
+                desc: items[s.id].desc || '',
+                act: () => buyItem(s.id)
             }));
             opts.push({ label: '― 道具を売る ―', act: () => pushPage('shopSell', ctx) });
             opts.push({ label: 'やめる', act: closeMenu });
