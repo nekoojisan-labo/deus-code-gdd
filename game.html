@@ -66,6 +66,40 @@
         <div id="loading">LOADING...</div>
         <canvas id="gameCanvas" width="1200" height="750"></canvas>
     </div>
-    <script src="game.js"></script>
+
+    <!-- ===== 読み込み順 = 依存順（constants → state → data → systems → render → main） ===== -->
+    <!-- 基盤 -->
+    <script src="src/constants.js"></script>
+    <script src="src/util.js"></script>
+    <script src="src/assets.js"></script>
+    <!-- データ -->
+    <script src="src/data/skills.js"></script>
+    <script src="src/data/items.js"></script>
+    <script src="src/data/enemies.js"></script>
+    <script src="src/data/characters.js"></script>
+    <script src="src/data/shops.js"></script>
+    <script src="src/data/maps.js"></script>
+    <script src="src/data/chapters.js"></script>
+    <script src="src/data/cutscenes.js"></script>
+    <!-- 状態・セーブ -->
+    <script src="src/state.js"></script>
+    <script src="src/save.js"></script>
+    <!-- システム（純ロジック） -->
+    <script src="src/systems/cutscene.js"></script>
+    <script src="src/systems/story.js"></script>
+    <script src="src/systems/world.js"></script>
+    <script src="src/systems/battle.js"></script>
+    <script src="src/systems/menu.js"></script>
+    <script src="src/systems/title.js"></script>
+    <script src="src/systems/scene.js"></script>
+    <!-- 描画（コーデックスが差し替える層） -->
+    <script src="src/render/common.render.js"></script>
+    <script src="src/render/cutscene.render.js"></script>
+    <script src="src/render/world.render.js"></script>
+    <script src="src/render/battle.render.js"></script>
+    <script src="src/render/menu.render.js"></script>
+    <!-- 入力・ループ -->
+    <script src="src/input.js"></script>
+    <script src="src/main.js"></script>
 </body>
 </html>
